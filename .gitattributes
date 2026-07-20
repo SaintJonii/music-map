@@ -1,0 +1,6 @@
+# Enforce UTF-8 encoding for common config files to avoid UnicodeDecodeError in CI
+*.ini text working-tree-encoding=UTF-8
+*.cfg text working-tree-encoding=UTF-8
+*.toml text working-tree-encoding=UTF-8
+*.yml text working-tree-encoding=UTF-8
+*.yaml text working-tree-encoding=UTF-8
