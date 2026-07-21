@@ -1,231 +1,231 @@
 # Mapa Musical TDD
 
-**Enrich and visualize music libraries using audio analysis and data visualization.** This project leverages [librosa](https://librosa.org/) to extract meaningful features from audio files and helps you organize, classify, and explore your music collection.
+**Enriquece y visualiza bibliotecas musicales utilizando análisis de audio y visualización de datos.** Este proyecto aprovecha [librosa](https://librosa.org/) para extraer características significativas de archivos de audio y ayudarte a explorar tu colección musical.
 
-Proyecto construido con **Test-Driven Development (TDD)** | Built with **Test-Driven Development (TDD)**
+Proyecto construido con **Desarrollo Dirigido por Pruebas (TDD)** | Built with **Test-Driven Development (TDD)**
 
 ---
 
-## 🎯 Project Purpose
+## 🎯 Propósito del Proyecto
 
-Mapa Musical is designed to solve the challenge of understanding and organizing large music libraries. By applying audio analysis techniques using librosa, this project:
+Mapa Musical está diseñado para resolver el desafío de entender y organizar grandes bibliotecas musicales. Al aplicar técnicas de análisis de audio usando librosa, este proyecto:
 
-- **Enriches** music metadata with extracted audio features (tempo, spectral characteristics, etc.)
-- **Visualizes** relationships and patterns within your music collection
-- **Classifies** tracks based on their acoustic properties
-- **Enables** data-driven exploration of music libraries
+- **Enriquece** metadatos musicales con características de audio extraídas (tempo, características espectrales, etc.)
+- **Visualiza** relaciones y patrones dentro de tu colección musical
+- **Clasifica** pistas basadas en sus propiedades acústicas
+- **Permite** la exploración de bibliotecas musicales impulsada por datos
 
-## ✨ Key Features
+## ✨ Características Principales
 
-- 🎵 **Music Classification** - Automatically categorize tracks based on audio analysis
-- 📊 **Audio Feature Extraction** - Extract and analyze features like:
-  - Tempo and beat tracking
-  - Spectral analysis (MFCCs, chroma features, etc.)
-  - Loudness and dynamic range
-  - Audio fingerprinting
-- 🗺️ **Library Visualization** - Create interactive visualizations of your music collection
-- 🧪 **100% Test Coverage** - Every feature is backed by comprehensive test suite
-- 📈 **Data-Driven Insights** - Understand patterns in your music taste and collection
+- 🎵 **Clasificación Musical** - Categoriza automáticamente pistas basadas en análisis de audio
+- 📊 **Extracción de Características de Audio** - Extrae y analiza características como:
+  - Tempo y seguimiento de ritmo
+  - Análisis espectral (MFCCs, características de cromaticidad, etc.)
+  - Volumen y rango dinámico
+  - Huella digital de audio
+- 🗺️ **Visualización de Biblioteca** - Crea visualizaciones interactivas de tu colección musical
+- 🧪 **Cobertura de Pruebas del 100%** - Cada característica está respaldada por un conjunto de pruebas integral
+- 📈 **Información Impulsada por Datos** - Comprende patrones en tu gusto musical y colección
 
-## 📋 Requirements
+## 📋 Requisitos
 
-- **Python**: 3.8 or higher
-- **Core Dependencies**:
-  - `librosa` - Audio analysis library
-  - `numpy` - Numerical computing
-  - `scipy` - Scientific computing
-  - `matplotlib` / `plotly` - Data visualization (recommended)
-- **Development**:
-  - `pytest` - Testing framework
-  - `pytest-cov` - Coverage reporting
+- **Python**: 3.8 o superior
+- **Dependencias Principales**:
+  - `librosa` - Biblioteca de análisis de audio
+  - `numpy` - Computación numérica
+  - `scipy` - Computación científica
+  - `matplotlib` / `plotly` - Visualización de datos (recomendado)
+- **Desarrollo**:
+  - `pytest` - Marco de pruebas
+  - `pytest-cov` - Reporte de cobertura
 
-## 🚀 Installation
+## 🚀 Instalación
 
-### Clone the repository
+### Clonar el repositorio
 
 ```bash
 git clone https://github.com/aelaredo/mapa-musical-tdd.git
 cd mapa-musical-tdd
 ```
 
-### Set up virtual environment
+### Configurar entorno virtual
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # En Windows: venv\Scripts\activate
 ```
 
-### Install dependencies
+### Instalar dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Install development dependencies (optional)
+### Instalar dependencias de desarrollo (opcional)
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-## 💻 Quick Start Example
+## 💻 Ejemplo de Inicio Rápido
 
 ```python
 from mapa_musical import MusicAnalyzer
 
-# Initialize the analyzer
+# Inicializa el analizador
 analyzer = MusicAnalyzer()
 
-# Load an audio file
+# Carga un archivo de audio
 features = analyzer.extract_features('path/to/audio/file.mp3')
 
-# Analyze the results
+# Analiza los resultados
 print(f"Tempo: {features['tempo']} BPM")
-print(f"Genre indicators: {features['genre_features']}")
+print(f"Indicadores de género: {features['genre_features']}")
 
-# Classify the track
+# Clasifica la pista
 classification = analyzer.classify(features)
-print(f"Predicted classification: {classification}")
+print(f"Clasificación predicha: {classification}")
 ```
 
-## 🧪 Testing & Test-Driven Development
+## 🧪 Pruebas y Desarrollo Dirigido por Pruebas
 
-This project maintains **100% test coverage** through strict TDD practices. All code is written tests-first.
+Este proyecto mantiene una **cobertura de pruebas del 100%** mediante prácticas estrictas de TDD. Todo el código se escribe primero las pruebas.
 
-### Run tests
+### Ejecutar pruebas
 
 ```bash
 pytest
 ```
 
-### Run tests with coverage report
+### Ejecutar pruebas con reporte de cobertura
 
 ```bash
 pytest --cov=src --cov-report=html
 ```
 
-### Run tests in watch mode (optional)
+### Ejecutar pruebas en modo vigilancia (opcional)
 
 ```bash
 pytest-watch
 ```
 
-## 📚 Usage Guide
+## 📚 Guía de Uso
 
-### 1. Basic Audio Feature Extraction
+### 1. Extracción Básica de Características de Audio
 
-Extract features from a single audio file to understand its characteristics:
+Extrae características de un único archivo de audio para entender sus características:
 
 ```python
 analyzer = MusicAnalyzer()
 features = analyzer.extract_features('song.mp3')
 ```
 
-### 2. Batch Processing a Music Library
+### 2. Procesamiento por Lotes de una Biblioteca Musical
 
-Process an entire folder to enrich your music collection:
+Procesa una carpeta completa para enriquecer tu colección musical:
 
 ```python
 analyzer = MusicAnalyzer()
 library_features = analyzer.process_directory('path/to/music/library/')
 ```
 
-### 3. Visualize Your Music Collection
+### 3. Visualiza Tu Colección Musical
 
-Create visualizations to explore relationships:
+Crea visualizaciones para explorar relaciones:
 
 ```python
 from mapa_musical import MusicVisualizer
 
 visualizer = MusicVisualizer(library_features)
-visualizer.plot_2d_map()  # 2D scatter plot of your library
+visualizer.plot_2d_map()  # Gráfico de dispersión 2D de tu biblioteca
 visualizer.plot_tempo_distribution()
 visualizer.plot_genre_clustering()
 ```
 
-## 📊 Project Structure
+## 📊 Estructura del Proyecto
 
 ```
 mapa-musical-tdd/
 ├── src/
 │   ├── mapa_musical/
 │   │   ├── __init__.py
-│   │   ├── analyzer.py          # Core audio analysis
-│   │   ├── classifier.py        # Music classification
-│   │   ├── visualizer.py        # Visualization utilities
-│   │   └── features.py          # Feature extraction
+│   │   ├── analyzer.py          # Análisis de audio principal
+│   │   ├── classifier.py        # Clasificación musical
+│   │   ├── visualizer.py        # Utilidades de visualización
+│   │   └── features.py          # Extracción de características
 │   └── ...
 ├── tests/
-│   ├── unit/                    # Unit tests
-│   ├── integration/             # Integration tests
-│   └── conftest.py              # Pytest fixtures
-├── .github/workflows/           # CI/CD pipelines
-├── requirements.txt             # Production dependencies
-├── requirements-dev.txt         # Development dependencies
+│   ├── unit/                    # Pruebas unitarias
+│   ├── integration/             # Pruebas de integración
+│   └── conftest.py              # Accesorios de pytest
+├── .github/workflows/           # Pipelines de CI/CD
+├── requirements.txt             # Dependencias de producción
+├── requirements-dev.txt         # Dependencias de desarrollo
 └── README.md
 ```
 
-## 🔄 Project Status
+## 🔄 Estado del Proyecto
 
-**Status**: 🟡 **Active Development**
+**Estado**: 🟡 **Desarrollo Activo**
 
-This project is in active development. Core features are being built following TDD principles. Expect regular updates and improvements.
+Este proyecto está en desarrollo activo. Las características principales se están construyendo siguiendo principios de TDD. Espera actualizaciones y mejoras regulares.
 
-### Planned Features
+### Características Planeadas
 
-- [ ] Real-time audio stream analysis
-- [ ] Advanced clustering algorithms
-- [ ] Web-based visualization dashboard
-- [ ] API server for external integrations
-- [ ] Support for multiple audio formats
-- [ ] Machine learning-based genre classification
+- [ ] Análisis de secuencia de audio en tiempo real
+- [ ] Algoritmos de agrupamiento avanzados
+- [ ] Panel de visualización basado en web
+- [ ] Servidor de API para integraciones externas
+- [ ] Soporte para múltiples formatos de audio
+- [ ] Clasificación de género basada en aprendizaje automático
 
-### Known Limitations
+### Limitaciones Conocidas
 
-- Currently processes offline audio files (streaming support coming soon)
-- GPU acceleration not yet implemented (can be slow for very large libraries)
+- Actualmente procesa archivos de audio sin conexión (soporte de transmisión próximamente)
+- La aceleración de GPU aún no está implementada (puede ser lento para bibliotecas muy grandes)
 
-## 🤝 Contributing
+## 🤝 Contribuciones
 
-We welcome contributions! Here's how to get started:
+¡Bienvenidas las contribuciones! Aquí te mostramos cómo comenzar:
 
-1. **Fork** the repository
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Write tests first** (following TDD principles)
-4. **Implement your feature** with 100% test coverage
-5. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-6. **Push to your fork** (`git push origin feature/amazing-feature`)
-7. **Open a Pull Request** and describe your changes
+1. **Haz un fork** del repositorio
+2. **Crea una rama de característica** (`git checkout -b feature/amazing-feature`)
+3. **Escribe primero las pruebas** (siguiendo principios de TDD)
+4. **Implementa tu característica** con cobertura de pruebas del 100%
+5. **Confirma tus cambios** (`git commit -m 'Add amazing feature'`)
+6. **Sube a tu fork** (`git push origin feature/amazing-feature`)
+7. **Abre una solicitud de extracción** y describe tus cambios
 
-### Contribution Guidelines
+### Directrices de Contribución
 
-- Always follow TDD: write tests before implementation
-- Maintain 100% test coverage
-- Include docstrings for all functions and classes
-- Follow PEP 8 style guide
-- Make sure CI/CD passes before submitting PR
+- Siempre sigue TDD: escribe pruebas antes de la implementación
+- Mantén cobertura de pruebas del 100%
+- Incluye docstrings para todas las funciones y clases
+- Sigue la guía de estilo PEP 8
+- Asegúrate de que CI/CD pase antes de enviar el PR
 
-## 📝 License
+## 📝 Licencia
 
-No license assigned yet. Please see LICENSE file for details.
+Sin licencia asignada aún. Por favor, consulta el archivo LICENSE para más detalles.
 
-## 🔗 Links & Resources
+## 🔗 Enlaces y Recursos
 
-- [librosa Documentation](https://librosa.org/)
-- [pytest Documentation](https://docs.pytest.org/)
-- [Test-Driven Development Best Practices](https://en.wikipedia.org/wiki/Test-driven_development)
+- [Documentación de librosa](https://librosa.org/)
+- [Documentación de pytest](https://docs.pytest.org/)
+- [Mejores Prácticas de Desarrollo Dirigido por Pruebas](https://en.wikipedia.org/wiki/Test-driven_development)
 
-## 📞 Support & Contact
+## 📞 Soporte y Contacto
 
-### Getting Help
+### Obtener Ayuda
 
-- 🐛 **Bug Reports**: Open an [issue](https://github.com/aelaredo/mapa-musical-tdd/issues)
-- 💡 **Feature Requests**: Open an [issue](https://github.com/aelaredo/mapa-musical-tdd/issues)
-- 📧 **Direct Contact**: Reach out to the maintainers
+- 🐛 **Reportes de Errores**: Abre un [issue](https://github.com/aelaredo/mapa-musical-tdd/issues)
+- 💡 **Solicitudes de Características**: Abre un [issue](https://github.com/aelaredo/mapa-musical-tdd/issues)
+- 📧 **Contacto Directo**: Ponte en contacto con los mantenedores
 
-### GitHub Issues
+### Problemas de GitHub
 
-For bug reports and feature requests, please use the [GitHub Issues](https://github.com/aelaredo/mapa-musical-tdd/issues) page.
+Para reportes de errores y solicitudes de características, por favor utiliza la página de [Problemas de GitHub](https://github.com/aelaredo/mapa-musical-tdd/issues).
 
 ---
 
-**Made with ❤️ for music lovers and data enthusiasts**
+**Hecho con ❤️ para amantes de la música y entusiastas de datos**
