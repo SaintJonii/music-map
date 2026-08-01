@@ -36,18 +36,18 @@ Runtime harness: `go build ./...` (all units). E2E: WAV fixture pipeline → ver
 
 ## Phase 3: Feature Extraction (go-dsp FFT Primitives)
 
-- [ ] 3.1 RED → GREEN: RMS (sine 0.5→0.5±0.01, silence→0.0), ZCR (440 Hz→880±5%, DC-offset→0), SpectralCentroid (100 Hz→100±10 Hz)
-- [ ] 3.2 RED → GREEN: BPM (120 BPM click ±5%, short→warn), Chroma (C-major→bins C/E/G highest), MFCCs (1024-frame→13 coeffs, empty→zeros), Key (A-minor→"A minor")
-- [ ] 3.3 REFACTOR: extract shared FFT helpers, window functions, normalization constants
+- [x] 3.1 RED → GREEN: RMS (sine 0.5→0.5±0.01, silence→0.0), ZCR (440 Hz→880±5%, DC-offset→0), SpectralCentroid (100 Hz→100±10 Hz)
+- [x] 3.2 RED → GREEN: BPM (120 BPM click ±5%, short→warn), Chroma (C-major→bins C/E/G highest), MFCCs (1024-frame→13 coeffs, empty→zeros), Key (A-minor→"A minor")
+- [x] 3.3 REFACTOR: extract shared FFT helpers, window functions, normalization constants
 
 ## Phase 4: Metadata + Persistence
 
-- [ ] 4.1 RED → GREEN: `metadata/reader.go` — TagReader (dhowden/tag). Tests: MP3 ID3v2, FLAC Vorbis, untagged WAV→empty, missing file→error
-- [ ] 4.2 RED → GREEN: `metadata/enricher.go` — MusicBrainzClient (go-musicbrainzws2) with golden HTTP fixtures. Tests: valid MBID, unknown→not-found, timeout/503→retryable-error
-- [ ] 4.3 RED → GREEN: `storage/repository.go` — SQLite (modernc.org/sqlite), auto-migrate tracks+features tables with FK. Save+GetByID+List via `:memory:`, sentinel `ErrNotFound`/`ErrConflict`, corrupt-DB no-panic (5 reqs)
+- [x] 4.1 RED → GREEN: `metadata/reader.go` — TagReader (dhowden/tag). Tests: MP3 ID3v2, FLAC Vorbis, untagged WAV→empty, missing file→error
+- [x] 4.2 RED → GREEN: `metadata/enricher.go` — MusicBrainzClient (go-musicbrainzws2) with golden HTTP fixtures. Tests: valid MBID, unknown→not-found, timeout/503→retryable-error
+- [x] 4.3 RED → GREEN: `storage/repository.go` — SQLite (modernc.org/sqlite), auto-migrate tracks+features tables with FK. Save+GetByID+List via `:memory:`, sentinel `ErrNotFound`/`ErrConflict`, corrupt-DB no-panic (5 reqs)
 
 ## Phase 5: CLI Integration + E2E + Coverage
 
-- [ ] 5.1 RED → GREEN: `cmd/mapa-musical/main.go` — wire pipeline: decode → extract → enrich → persist
-- [ ] 5.2 E2E: full pipeline on short WAV fixture in `testdata/` → verify SQLite row matches extracted features
-- [ ] 5.3 Verify: `go test ./... -cover` ≥80%, `golangci-lint run` clean, `go build ./...` passes
+- [x] 5.1 RED → GREEN: `cmd/mapa-musical/main.go` — wire pipeline: decode → extract → enrich → persist
+- [x] 5.2 E2E: full pipeline on short WAV fixture in `testdata/` → verify SQLite row matches extracted features
+- [x] 5.3 Verify: `go test ./... -cover` ≥80%, `golangci-lint run` clean, `go build ./...` passes
