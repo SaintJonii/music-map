@@ -3,6 +3,7 @@ package metadata
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/SaintJonii/music-map/model"
@@ -90,7 +91,7 @@ func wrapMBError(err error) error {
 		case http.StatusServiceUnavailable:
 			return errors.New("metadata: MusicBrainz service unavailable (503)")
 		default:
-			return errors.New("metadata: MusicBrainz HTTP error: " + clientErr.Error())
+			return fmt.Errorf("metadata: MusicBrainz HTTP error: %w", clientErr)
 		}
 	}
 	return err

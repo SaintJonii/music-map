@@ -43,7 +43,7 @@ func (tr *tagReader) ReadTags(r io.ReadSeeker) (model.Track, error) {
 
 	// Extract ISRC from raw tags.
 	raw := m.Raw()
-	track.ISRC = extractTagString(raw, "ISRC", "TSRC", "tsrc")
+	track.ISRC = extractTagString(raw, "ISRC", "TSRC")
 
 	return track, nil
 }

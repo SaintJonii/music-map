@@ -8,18 +8,42 @@ import (
 // ErrInsufficientDuration is returned when audio is too short for feature extraction.
 var ErrInsufficientDuration = errors.New("audio: insufficient duration for BPM detection")
 
-// FeatureExtractor defines the interface for computing acoustic features from
-// normalized PCM float64 samples (range [-1.0, 1.0]).
-type FeatureExtractor interface {
+// BPMSensor estimates tempo from PCM samples.
+type BPMSensor interface {
+	ExtractBPM(samples []float64, sampleRate int) (float64, error)
+}
+
+// KeyDetector classifies musical key from a chroma vector.
+type KeyDetector interface {
+	ExtractKey(chroma [12]float64) string
+}
+
+// EnergyAnalyzer computes RMS energy and zero-crossing rate.
+type EnergyAnalyzer interface {
 	ExtractRMS(samples []float64) float64
 	ExtractZCR(samples []float64, sampleRate int) float64
+}
+
+// SpectralAnalyzer computes frequency-domain features.
+type SpectralAnalyzer interface {
 	ExtractSpectralCentroid(samples []float64, sampleRate int) (float64, error)
-	ExtractBPM(samples []float64, sampleRate int) (float64, error)
 	ExtractChroma(samples []float64, sampleRate int) ([12]float64, error)
 	ExtractMFCCs(frame []float64) ([13]float64, error)
-	ExtractKey(chroma [12]float64) string
+}
+
+// VibeEstimator estimates perceptual features from derived values.
+type VibeEstimator interface {
 	ExtractDanceability(bpm, energy float64, zcr float64) float64
 	ExtractAcousticness(spectralCentroid float64, energy float64) float64
+}
+
+// FeatureExtractor composes all feature extraction capabilities.
+type FeatureExtractor interface {
+	BPMSensor
+	KeyDetector
+	EnergyAnalyzer
+	SpectralAnalyzer
+	VibeEstimator
 }
 
 // DefaultExtractor is the default implementation of FeatureExtractor

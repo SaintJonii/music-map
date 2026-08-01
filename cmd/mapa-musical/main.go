@@ -55,28 +55,36 @@ func (p *pipeline) processFile(ctx context.Context, filePath string) (model.Trac
 	}
 
 	// 3. Detect format and decode.
-	decoder, err := audio.DetectFormat(f)
+	decoder, r, err := audio.DetectFormat(f)
 	if err != nil {
 		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("detect format: %w", err)
 	}
-	if _, err := f.Seek(0, 0); err != nil {
-		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("seek: %w", err)
-	}
-	samples, sampleRate, channels, err := decoder.Decode(f)
+	samples, sampleRate, channels, err := decoder.Decode(r)
 	if err != nil {
 		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("decode: %w", err)
 	}
 
 	track.Duration = float64(len(samples)) / float64(sampleRate*channels)
-	track.Format, _ = detectFormatName(samples, sampleRate, channels)
 
 	// 4. Extract features.
 	energy := p.extractor.ExtractRMS(samples)
 	zcr := p.extractor.ExtractZCR(samples, sampleRate)
-	centroid, _ := p.extractor.ExtractSpectralCentroid(samples, sampleRate)
-	bpm, _ := p.extractor.ExtractBPM(samples, sampleRate)
-	chroma, _ := p.extractor.ExtractChroma(samples, sampleRate)
-	mfccs, _ := p.extractor.ExtractMFCCs(samples)
+	centroid, err := p.extractor.ExtractSpectralCentroid(samples, sampleRate)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: spectral centroid failed: %v\n", err)
+	}
+	bpm, err := p.extractor.ExtractBPM(samples, sampleRate)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: BPM detection failed: %v\n", err)
+	}
+	chroma, err := p.extractor.ExtractChroma(samples, sampleRate)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: chroma extraction failed: %v\n", err)
+	}
+	mfccs, err := p.extractor.ExtractMFCCs(samples)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: MFCC extraction failed: %v\n", err)
+	}
 	key := p.extractor.ExtractKey(chroma)
 	danceability := p.extractor.ExtractDanceability(bpm, energy, zcr)
 	acousticness := p.extractor.ExtractAcousticness(centroid, energy)
@@ -99,13 +107,6 @@ func (p *pipeline) processFile(ctx context.Context, filePath string) (model.Trac
 	}
 
 	return track, features, nil
-}
-
-// detectFormatName detects the audio format name.
-func detectFormatName(_ []float64, _ int, _ int) (string, error) {
-	// Format detection would normally come from the decoder.
-	// For now, return empty — the format is set by the CLI or from file extension.
-	return "", nil
 }
 
 // fileID generates a deterministic ID from a file path.

@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -19,36 +20,43 @@ type Decoder interface {
 }
 
 // DetectFormat inspects the beginning of an audio stream and returns the
-// appropriate Decoder for the detected format. It peeks at the stream's
-// magic bytes to determine the format.
-func DetectFormat(r io.Reader) (Decoder, error) {
+// appropriate Decoder for the detected format and a reader that includes the
+// consumed magic bytes. The returned reader is safe to pass directly to
+// Decoder.Decode without seeking.
+func DetectFormat(r io.Reader) (Decoder, io.Reader, error) {
 	// Peek at first 12 bytes to detect format.
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(r, buf)
 	if n == 0 {
-		return nil, ErrEmptyInput
+		return nil, nil, ErrEmptyInput
 	}
-	if err != nil {
-		return nil, fmt.Errorf("audio: failed to read format header: %w", err)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return nil, nil, fmt.Errorf("audio: failed to read format header: %w", err)
 	}
+	if n < 4 && err == io.ErrUnexpectedEOF {
+		return nil, nil, ErrEmptyInput
+	}
+
+	// Prepend consumed bytes so the reader is intact for the decoder.
+	restored := io.MultiReader(bytes.NewReader(buf[:n]), r)
 
 	// WAV detection: "RIFF" at offset 0, "WAVE" at offset 8.
 	if buf[0] == 'R' && buf[1] == 'I' && buf[2] == 'F' && buf[3] == 'F' &&
 		buf[8] == 'W' && buf[9] == 'A' && buf[10] == 'V' && buf[11] == 'E' {
-		return &WAVDecoder{}, nil
+		return &WAVDecoder{}, restored, nil
 	}
 
 	// MP3 detection: sync bits 0xFF followed by 0xE0-0xFF.
 	if buf[0] == 0xFF && (buf[1]&0xE0) == 0xE0 {
-		return &MP3Decoder{}, nil
+		return &MP3Decoder{}, restored, nil
 	}
 
 	// FLAC detection: "fLaC" marker.
 	if buf[0] == 'f' && buf[1] == 'L' && buf[2] == 'a' && buf[3] == 'C' {
-		return &FLACDecoder{}, nil
+		return &FLACDecoder{}, restored, nil
 	}
 
-	return nil, fmt.Errorf("%w: %s", ErrUnsupportedFormat, detectTypeName(buf))
+	return nil, nil, fmt.Errorf("%w: %s", ErrUnsupportedFormat, detectTypeName(buf))
 }
 
 // detectTypeName returns a human-readable format name from magic bytes.

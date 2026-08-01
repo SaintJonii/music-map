@@ -16,13 +16,20 @@ type WAVDecoder struct{}
 // Decode implements the Decoder interface for WAV files.
 // Samples are normalized to float64 in the range [-1.0, 1.0].
 func (d *WAVDecoder) Decode(r io.Reader) ([]float64, int, int, error) {
-	// Read all bytes to create a seekable reader.
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, 0, 0, fmt.Errorf("wav: failed to read input: %w", err)
+	// Prefer direct seekable reader to avoid buffering large files in memory.
+	// Fall back to io.ReadAll only when the reader is not seekable.
+	var seeker io.ReadSeeker
+	if rs, ok := r.(io.ReadSeeker); ok {
+		seeker = rs
+	} else {
+		data, err := io.ReadAll(r)
+		if err != nil {
+			return nil, 0, 0, fmt.Errorf("wav: failed to read input: %w", err)
+		}
+		seeker = bytes.NewReader(data)
 	}
 
-	dec := wavlib.NewDecoder(bytes.NewReader(data))
+	dec := wavlib.NewDecoder(seeker)
 	if !dec.IsValidFile() {
 		return nil, 0, 0, fmt.Errorf("wav: invalid file: %w", dec.Err())
 	}

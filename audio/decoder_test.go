@@ -43,7 +43,7 @@ func TestDecoderInterfaceMockSatisfiesContract(t *testing.T) {
 func TestDetectFormat_WAVMagicBytes(t *testing.T) {
 	// RIFF....WAVE header — should return a *WAVDecoder (non-nil, no error).
 	wavHeader := []byte("RIFF\x00\x00\x00\x00WAVE")
-	dec, err := DetectFormat(bytes.NewReader(wavHeader))
+	dec, _, err := DetectFormat(bytes.NewReader(wavHeader))
 	if err != nil {
 		t.Fatalf("DetectFormat: expected no error for WAV, got %v", err)
 	}
@@ -54,7 +54,7 @@ func TestDetectFormat_WAVMagicBytes(t *testing.T) {
 
 func TestDetectFormat_UnsupportedOGG(t *testing.T) {
 	oggHeader := []byte("OggS\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00")
-	_, err := DetectFormat(bytes.NewReader(oggHeader))
+	_, _, err := DetectFormat(bytes.NewReader(oggHeader))
 	if err == nil {
 		t.Fatal("DetectFormat: expected error for OGG, got nil")
 	}
@@ -64,7 +64,7 @@ func TestDetectFormat_UnsupportedOGG(t *testing.T) {
 }
 
 func TestDetectFormat_EmptyInput(t *testing.T) {
-	_, err := DetectFormat(bytes.NewReader([]byte{}))
+	_, _, err := DetectFormat(bytes.NewReader([]byte{}))
 	if err == nil {
 		t.Fatal("DetectFormat: expected error for empty input, got nil")
 	}
@@ -76,7 +76,7 @@ func TestDetectFormat_EmptyInput(t *testing.T) {
 func TestDetectFormat_MP3MagicBytes(t *testing.T) {
 	// MPEG frame sync: 0xFF followed by 0xFB (MPEG1 Layer3)
 	mp3Header := []byte{0xFF, 0xFB, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	dec, err := DetectFormat(bytes.NewReader(mp3Header))
+	dec, _, err := DetectFormat(bytes.NewReader(mp3Header))
 	if err != nil {
 		t.Fatalf("DetectFormat: expected no error for MP3, got %v", err)
 	}
@@ -87,7 +87,7 @@ func TestDetectFormat_MP3MagicBytes(t *testing.T) {
 
 func TestDetectFormat_FLACMagicBytes(t *testing.T) {
 	flacHeader := []byte("fLaC\x00\x00\x00\x16\x00\x00\x00\x00\x00\x00")
-	dec, err := DetectFormat(bytes.NewReader(flacHeader))
+	dec, _, err := DetectFormat(bytes.NewReader(flacHeader))
 	if err != nil {
 		t.Fatalf("DetectFormat: expected no error for FLAC, got %v", err)
 	}
@@ -98,7 +98,7 @@ func TestDetectFormat_FLACMagicBytes(t *testing.T) {
 
 func TestDetectFormat_UnknownMagicBytes(t *testing.T) {
 	unknown := []byte{0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	_, err := DetectFormat(bytes.NewReader(unknown))
+	_, _, err := DetectFormat(bytes.NewReader(unknown))
 	if err == nil {
 		t.Fatal("DetectFormat: expected error for unknown format, got nil")
 	}
@@ -109,7 +109,7 @@ func TestDetectFormat_UnknownMagicBytes(t *testing.T) {
 
 func TestDetectFormat_OGGErrorMessage(t *testing.T) {
 	oggHeader := []byte("OggS\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00")
-	_, err := DetectFormat(bytes.NewReader(oggHeader))
+	_, _, err := DetectFormat(bytes.NewReader(oggHeader))
 	if err == nil {
 		t.Fatal("DetectFormat: expected error for OGG, got nil")
 	}
@@ -122,7 +122,7 @@ func TestDetectFormat_OGGErrorMessage(t *testing.T) {
 
 func TestDetectFormat_ShortInput(t *testing.T) {
 	// 5 bytes — too short for any format, but not empty.
-	_, err := DetectFormat(bytes.NewReader([]byte{0x01, 0x02, 0x03, 0x04, 0x05}))
+	_, _, err := DetectFormat(bytes.NewReader([]byte{0x01, 0x02, 0x03, 0x04, 0x05}))
 	if err == nil {
 		t.Fatal("DetectFormat: expected error for short input, got nil")
 	}

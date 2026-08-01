@@ -254,9 +254,13 @@ func (r *sqliteRepo) Close() error {
 }
 
 // isUniqueConstraint checks if an error is a SQLite UNIQUE constraint violation.
+// It walks the error chain to handle wrapped errors from the database/sql layer.
 func isUniqueConstraint(err error) bool {
-	if err == nil {
-		return false
+	for err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return true
+		}
+		err = errors.Unwrap(err)
 	}
-	return strings.Contains(err.Error(), "UNIQUE constraint failed")
+	return false
 }

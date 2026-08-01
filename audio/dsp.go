@@ -20,7 +20,10 @@ const (
 // magnitudeSpectrum computes the forward FFT of real-valued samples and returns
 // the magnitude for each positive-frequency bin (indices 0 to N/2 inclusive).
 func magnitudeSpectrum(samples []float64) []float64 {
-	spectrum := fft.FFTReal(samples)
+	windowed := make([]float64, len(samples))
+	copy(windowed, samples)
+	applyWindow(windowed, hannWindow(len(samples)))
+	spectrum := fft.FFTReal(windowed)
 	N := len(spectrum)
 	halfN := N/2 + 1
 	mags := make([]float64, halfN)
@@ -33,7 +36,10 @@ func magnitudeSpectrum(samples []float64) []float64 {
 // powerSpectrum computes the forward FFT and returns the squared magnitude
 // (power) for each positive-frequency bin.
 func powerSpectrumFunc(samples []float64) []float64 {
-	spectrum := fft.FFTReal(samples)
+	windowed := make([]float64, len(samples))
+	copy(windowed, samples)
+	applyWindow(windowed, hammingWindow(len(samples)))
+	spectrum := fft.FFTReal(windowed)
 	N := len(spectrum)
 	halfN := N/2 + 1
 	pows := make([]float64, halfN)
