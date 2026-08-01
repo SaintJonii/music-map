@@ -1,0 +1,31 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Go 1.26+, go test, gofmt. Audio analysis library TBD (Go equivalent of librosa). MusicBrainz API (exploration).
+  Architecture: Standard Go project layout (cmd/, internal/, pkg/ to be decided). Early-stage TDD lab — no modules yet.
+  Testing: go test with -cover (coverage), golangci-lint linter (planned), gofmt formatter. Go provides built-in static typing via compiler.
+  Style: Conventional commits, Spanish README.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow standard Go project layout conventions
+      - Use idiomatic Go patterns (no inheritance, prefer composition)
+    tdd: true
+    test_command: "go test ./... -v -cover -coverprofile=coverage.out"
+  verify:
+    test_command: "go test ./... -v -cover -coverprofile=coverage.out"
+    build_command: "go build ./..."
+    coverage_threshold: 80
+  archive:
+    - Warn before merging destructive deltas

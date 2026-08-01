@@ -1,5 +1,0 @@
-import pytest
-from src.main import main
-
-def test_main():
-    assert main() == "Hola Mundo desde TDD"

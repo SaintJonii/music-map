@@ -1,7 +1,0 @@
-# src/main.py
-
-def main():
-    return "Hola Mundo desde TDD"
-
-if __name__ == '__main__':
-    print(main())
