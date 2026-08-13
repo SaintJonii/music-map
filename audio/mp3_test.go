@@ -13,7 +13,7 @@ func TestMP3Decoder_SampleCountWithinTolerance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open test fixture: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	dec := &MP3Decoder{}
 	samples, rate, ch, err := dec.Decode(f)
@@ -53,7 +53,7 @@ func TestMP3Decoder_CorruptStreamReturnsError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open test fixture: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	dec := &MP3Decoder{}
 	_, _, _, err = dec.Decode(f)

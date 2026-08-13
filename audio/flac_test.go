@@ -13,7 +13,7 @@ func TestFLACDecoder_16BitLosslessVerify(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open test fixture: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	dec := &FLACDecoder{}
 	samples, rate, ch, err := dec.Decode(f)

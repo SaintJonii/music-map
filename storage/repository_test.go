@@ -22,9 +22,9 @@ func TestRepository_SaveAndGetByID(t *testing.T) {
 		Title: "Save Test",
 	}
 	features := model.TrackFeatures{
-		BPM:  120.0,
-		Key:  "C major",
-		ZCR:  0.15,
+		BPM: 120.0,
+		Key: "C major",
+		ZCR: 0.15,
 	}
 
 	if err := repo.Save(ctx, track, features); err != nil {
@@ -223,14 +223,14 @@ func TestRepository_ReopenPreservesData(t *testing.T) {
 	if err := repo1.Save(ctx, track, model.TrackFeatures{}); err != nil {
 		t.Fatalf("first Save failed: %v", err)
 	}
-	repo1.Close()
+	_ = repo1.Close()
 
 	// Second session: open the same file.
 	repo2, err := NewRepository(dbPath)
 	if err != nil {
 		t.Fatalf("failed to reopen repository: %v", err)
 	}
-	defer repo2.Close()
+	defer func() { _ = repo2.Close() }()
 
 	gotTrack, _, err := repo2.GetByID(ctx, "persist-1")
 	if err != nil {

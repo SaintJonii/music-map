@@ -14,7 +14,7 @@ func TestWAVDecoder_16BitStereoSampleRange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open test fixture: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	dec := &WAVDecoder{}
 	samples, rate, ch, err := dec.Decode(f)
@@ -46,7 +46,7 @@ func TestWAVDecoder_24BitDecodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open test fixture: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	dec := &WAVDecoder{}
 	samples, rate, ch, err := dec.Decode(f)
@@ -75,7 +75,7 @@ func TestWAVDecoder_32BitDecodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open test fixture: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	dec := &WAVDecoder{}
 	samples, rate, ch, err := dec.Decode(f)
@@ -104,7 +104,7 @@ func TestWAVDecoder_Unsupported8BitReturnsError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open test fixture: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	dec := &WAVDecoder{}
 	_, _, _, err = dec.Decode(f)

@@ -1,1 +1,0 @@
-# Ensure pytest can collect from src by adding repo root to PYTHONPATH

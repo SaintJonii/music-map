@@ -28,11 +28,11 @@ func TestExtractRMS_SineHalfAmplitude(t *testing.T) {
 	// For a sine wave: RMS = peak / √2 → peak = RMS * √2 = 0.5 * √2 ≈ 0.7071.
 	// Per spec: "sine 0.5→0.5±0.01" — amplitude 0.5 in RMS terms.
 	const (
-		sampleRate   = 44100
-		durationSec  = 1.0
-		targetRMS    = 0.5
+		sampleRate    = 44100
+		durationSec   = 1.0
+		targetRMS     = 0.5
 		peakForTarget = targetRMS * math.Sqrt2 // ≈ 0.7071
-		tolerance    = 0.01
+		tolerance     = 0.01
 	)
 	samples := generateSine(1000.0, peakForTarget, sampleRate, durationSec)
 
@@ -222,7 +222,7 @@ func generateClickTrack(bpm float64, sampleRate int, durationSec float64) []floa
 	samples := make([]float64, n)
 	samplesPerBeat := float64(sampleRate) * 60.0 / bpm
 	for i := range n {
-		if int(float64(i)/samplesPerBeat)%1 == 0 && i%int(samplesPerBeat) < 5 {
+		if i%int(samplesPerBeat) < 5 {
 			samples[i] = 1.0
 		}
 	}

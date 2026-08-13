@@ -40,7 +40,7 @@ func NewRepository(path string) (Repository, error) {
 
 	repo := &sqliteRepo{db: db}
 	if err := repo.migrate(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("storage: migrate: %w", err)
 	}
 
@@ -222,7 +222,7 @@ func (r *sqliteRepo) List(ctx context.Context) ([]model.Track, error) {
 	if err != nil {
 		return nil, fmt.Errorf("storage: list tracks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tracks []model.Track
 	for rows.Next() {

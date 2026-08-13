@@ -1,15 +1,3 @@
-__pycache__/
-*.pyc
-.pytest_cache/
-coverage/
-htmlcov/
-.env
-venv/
-.venv/
-.vscode/
-*.log
-.DS_Store
-
 # Go
 *.exe
 *.exe~
@@ -17,3 +5,14 @@ venv/
 *.out
 coverage.out
 vendor/
+
+# Environment
+.env
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+
+# Gentle AI skill registry cache (auto-generated, changes on every refresh)
+.atl/.skill-registry.cache.json

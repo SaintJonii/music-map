@@ -179,15 +179,15 @@ func TestTrack_Unmarshal_MalformedJSON_ReturnsError(t *testing.T) {
 
 func TestTrackFeatures_RoundTripJSON(t *testing.T) {
 	tf := TrackFeatures{
-		BPM:             120.5,
-		Key:             "A minor",
-		Energy:          0.85,
-		Danceability:    0.72,
-		Acousticness:    0.15,
+		BPM:              120.5,
+		Key:              "A minor",
+		Energy:           0.85,
+		Danceability:     0.72,
+		Acousticness:     0.15,
 		SpectralCentroid: 1044.2,
-		Chroma:          [12]float64{1.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0},
-		MFCCs:           [13]float64{12.3, 4.1, -2.0, 0.5, 0.3, 0.1, 0.0, -0.1, -0.2, -0.1, 0.0, 0.1, 0.0},
-		ZCR:             0.15,
+		Chroma:           [12]float64{1.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0},
+		MFCCs:            [13]float64{12.3, 4.1, -2.0, 0.5, 0.3, 0.1, 0.0, -0.1, -0.2, -0.1, 0.0, 0.1, 0.0},
+		ZCR:              0.15,
 	}
 
 	b, err := json.Marshal(tf)

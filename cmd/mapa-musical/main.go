@@ -35,7 +35,7 @@ func (p *pipeline) processFile(ctx context.Context, filePath string) (model.Trac
 	if err != nil {
 		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// 2. Read tags (tags-first strategy).
 	track, err := p.tagReader.ReadTags(f)
@@ -124,7 +124,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: failed to initialize storage: %v\n", err)
 		os.Exit(1)
 	}
-	defer repo.Close()
+	defer func() { _ = repo.Close() }()
 
 	p := newPipeline(repo)
 

@@ -47,7 +47,7 @@ func TestMusicBrainzClient_LookupByMBID_Valid(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(recordingJSON))
+		_, _ = w.Write([]byte(recordingJSON))
 	})
 	defer server.Close()
 
@@ -70,7 +70,7 @@ func TestMusicBrainzClient_LookupByISRC(t *testing.T) {
 	client, server := setupTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(isrcResultJSON))
+		_, _ = w.Write([]byte(isrcResultJSON))
 	})
 	defer server.Close()
 
@@ -93,7 +93,7 @@ func TestMusicBrainzClient_LookupByMBID_NotFound(t *testing.T) {
 	client, server := setupTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error": "Not Found"}`))
+		_, _ = w.Write([]byte(`{"error": "Not Found"}`))
 	})
 	defer server.Close()
 
@@ -112,7 +112,7 @@ func TestMusicBrainzClient_LookupByMBID_NotFound(t *testing.T) {
 func TestMusicBrainzClient_LookupByMBID_ServiceUnavailable(t *testing.T) {
 	client, server := setupTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(`{"error": "Service temporarily unavailable"}`))
+		_, _ = w.Write([]byte(`{"error": "Service temporarily unavailable"}`))
 	})
 	defer server.Close()
 
@@ -130,7 +130,7 @@ func TestMusicBrainzClient_LookupByISRC_EmptyResult(t *testing.T) {
 	client, server := setupTestClient(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"isrc": "XX-XXX-XX-00000", "recordings": []}`))
+		_, _ = w.Write([]byte(`{"isrc": "XX-XXX-XX-00000", "recordings": []}`))
 	})
 	defer server.Close()
 
@@ -165,4 +165,3 @@ func TestMusicBrainzClient_LookupByMBID_Timeout(t *testing.T) {
 
 	t.Logf("timeout error: %v", err)
 }
-

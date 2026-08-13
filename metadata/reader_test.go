@@ -23,15 +23,15 @@ func makeID3v2(frames ...id3Frame) []byte {
 	// ID3v2.3 header: "ID3" + version 3.0 + flags 0 + synchsafe size.
 	buf := &bytes.Buffer{}
 	buf.WriteString("ID3")
-	buf.WriteByte(3)               // version major
-	buf.WriteByte(0)               // version minor
-	buf.WriteByte(0)               // flags
+	buf.WriteByte(3)                    // version major
+	buf.WriteByte(0)                    // version minor
+	buf.WriteByte(0)                    // flags
 	writeSynchSafeInt(buf, dataSize+10) // size includes padding (10 bytes extra)
 
 	// Write frames.
 	for _, f := range frames {
 		buf.WriteString(f.id)
-		binary.Write(buf, binary.BigEndian, int32(len(f.data)))
+		_ = binary.Write(buf, binary.BigEndian, int32(len(f.data)))
 		buf.WriteByte(0) // flags hi
 		buf.WriteByte(0) // flags lo
 		buf.Write(f.data)
@@ -62,7 +62,7 @@ func writeSynchSafeInt(w io.Writer, v int) {
 	buf[1] = byte((v >> 14) & 0x7F)
 	buf[2] = byte((v >> 7) & 0x7F)
 	buf[3] = byte(v & 0x7F)
-	w.Write(buf)
+	_, _ = w.Write(buf)
 }
 
 // makeFLAC creates a minimal FLAC file with STREAMINFO + Vorbis comment blocks.
@@ -88,9 +88,9 @@ func makeFLAC(comments ...vorbisComment) []byte {
 	//
 	// Pack: sampleRate=44100 → 0b1010110001000100 (16 bits visible in bytes 10-11 top 4)
 	// Let's simplify: write raw bytes that dhowden/tag will parse without error.
-	streaminfo[10] = 0xAC  // sampleRate high
-	streaminfo[11] = 0x44  // sampleRate mid + channels
-	streaminfo[12] = 0x10  // channels + bps
+	streaminfo[10] = 0xAC                            // sampleRate high
+	streaminfo[11] = 0x44                            // sampleRate mid + channels
+	streaminfo[12] = 0x10                            // channels + bps
 	binary.BigEndian.PutUint32(streaminfo[13:17], 0) // total samples (unknown)
 	// MD5 (16 bytes of zeros).
 	copy(streaminfo[18:34], make([]byte, 16))
@@ -103,14 +103,14 @@ func makeFLAC(comments ...vorbisComment) []byte {
 
 	// Vendor string.
 	vendor := "reference libFLAC 1.3.2 20170101"
-	binary.Write(vcBuf, binary.LittleEndian, uint32(len(vendor)))
+	_ = binary.Write(vcBuf, binary.LittleEndian, uint32(len(vendor)))
 	vcBuf.WriteString(vendor)
 
 	// Number of comments.
-	binary.Write(vcBuf, binary.LittleEndian, uint32(len(comments)))
+	_ = binary.Write(vcBuf, binary.LittleEndian, uint32(len(comments)))
 	for _, c := range comments {
 		tagStr := c.key + "=" + c.value
-		binary.Write(vcBuf, binary.LittleEndian, uint32(len(tagStr)))
+		_ = binary.Write(vcBuf, binary.LittleEndian, uint32(len(tagStr)))
 		vcBuf.WriteString(tagStr)
 	}
 
@@ -129,14 +129,14 @@ func writeMetadataBlockHeader(w io.Writer, last bool, blockType byte, data []byt
 	if last {
 		header |= 0x80
 	}
-	w.Write([]byte{header})
+	_, _ = w.Write([]byte{header})
 	// 3-byte big-endian length.
 	lenBuf := make([]byte, 3)
 	lenBuf[0] = byte(len(data) >> 16)
 	lenBuf[1] = byte(len(data) >> 8)
 	lenBuf[2] = byte(len(data))
-	w.Write(lenBuf)
-	w.Write(data)
+	_, _ = w.Write(lenBuf)
+	_, _ = w.Write(data)
 }
 
 // errorReader is a ReadSeeker that always returns an error.
@@ -261,7 +261,7 @@ func TestTagReader_MissingFile(t *testing.T) {
 	// Simulate a missing file by opening a non-existent path.
 	f, err := os.Open("testdata/nonexistent_file.mp3")
 	if err == nil {
-		f.Close()
+		_ = f.Close()
 		t.Fatal("expected error opening non-existent file")
 	}
 

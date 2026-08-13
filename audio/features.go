@@ -370,14 +370,15 @@ func correlateTemplates(chroma [12]float64, template [12]float64, tonic int) flo
 // Returns a value in [0, 1].
 func (e *DefaultExtractor) ExtractDanceability(bpm, energy float64, zcr float64) float64 {
 	// BPM component: sigmoid centered at 120 BPM.
-	bpmScore := sigmoid((bpm-120.0)/30.0)
+	bpmScore := sigmoid((bpm - 120.0) / 30.0)
 
 	// Energy component: linear, higher is more danceable.
 	energyScore := clamp01(energy)
 
 	// ZCR component: moderate ZCR (0.1-0.4) is ideal for dance music.
 	// Use a bell curve centered at 0.25.
-	zcrScore := math.Exp(-math.Pow((zcr-0.25)/0.15, 2))
+	dev := (zcr - 0.25) / 0.15
+	zcrScore := math.Exp(-(dev * dev))
 
 	// Weighted combination: BPM 40%, Energy 35%, ZCR 25%.
 	score := 0.4*bpmScore + 0.35*energyScore + 0.25*zcrScore
@@ -389,10 +390,10 @@ func (e *DefaultExtractor) ExtractDanceability(bpm, energy float64, zcr float64)
 // Returns a value in [0, 1].
 func (e *DefaultExtractor) ExtractAcousticness(spectralCentroid float64, energy float64) float64 {
 	// Map spectral centroid: typical acoustic < 1500 Hz, electronic > 3000 Hz.
-	centroidScore := sigmoid((1500.0-spectralCentroid)/500.0)
+	centroidScore := sigmoid((1500.0 - spectralCentroid) / 500.0)
 
 	// Map energy: lower energy suggests acoustic.
-	energyScore := sigmoid((0.4-energy)/0.2)
+	energyScore := sigmoid((0.4 - energy) / 0.2)
 
 	// Combined: centroid 60%, energy 40%.
 	score := 0.6*centroidScore + 0.4*energyScore

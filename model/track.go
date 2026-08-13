@@ -4,19 +4,19 @@ import "time"
 
 // Track represents an audio track with metadata.
 type Track struct {
-	ID           string  `json:"id"`
-	Title        string  `json:"title"`
-	Artist       string  `json:"artist"`
-	Album        string  `json:"album"`
-	AlbumArtist  string  `json:"album_artist"`
-	Genre        string  `json:"genre"`
-	Year         int     `json:"year"`
-	TrackNumber  int     `json:"track_number"`
-	Duration     float64 `json:"duration"`
-	Format       string  `json:"format"`
-	BitRate      int     `json:"bit_rate"`
-	ISRC         string  `json:"isrc"`
-	FilePath     string  `json:"file_path"`
+	ID          string  `json:"id"`
+	Title       string  `json:"title"`
+	Artist      string  `json:"artist"`
+	Album       string  `json:"album"`
+	AlbumArtist string  `json:"album_artist"`
+	Genre       string  `json:"genre"`
+	Year        int     `json:"year"`
+	TrackNumber int     `json:"track_number"`
+	Duration    float64 `json:"duration"`
+	Format      string  `json:"format"`
+	BitRate     int     `json:"bit_rate"`
+	ISRC        string  `json:"isrc"`
+	FilePath    string  `json:"file_path"`
 }
 
 // NewTrack creates a Track, applying defaults for empty fields.

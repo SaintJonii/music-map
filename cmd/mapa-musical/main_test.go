@@ -12,7 +12,7 @@ func TestPipeline_WAVFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create repository: %v", err)
 	}
-	defer repo.Close()
+	defer func() { _ = repo.Close() }()
 
 	p := newPipeline(repo)
 	ctx := context.Background()
@@ -108,7 +108,7 @@ func TestPipeline_NonExistentFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create repository: %v", err)
 	}
-	defer repo.Close()
+	defer func() { _ = repo.Close() }()
 
 	p := newPipeline(repo)
 	ctx := context.Background()
