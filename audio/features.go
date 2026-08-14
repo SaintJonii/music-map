@@ -112,24 +112,30 @@ func (e *DefaultExtractor) ExtractSpectralCentroid(samples []float64, sampleRate
 		return 0, nil
 	}
 
-	mags := magnitudeSpectrum(samples)
-	N := len(mags)*2 - 2 // approximate original FFT length for frequency mapping
+	spectrum := HannMagnitudeSpectrum(samples)
+	return spectralCentroidFromSpectrum(spectrum, sampleRate), nil
+}
+
+// spectralCentroidFromSpectrum computes the weighted mean frequency from an
+// already-computed magnitude spectrum. N maps bin indices back to Hz.
+func spectralCentroidFromSpectrum(s Spectrum, sampleRate int) float64 {
+	N := s.N
 	if N <= 0 {
 		N = 2
 	}
 
 	var weightedSum, magSum float64
-	for i, mag := range mags {
+	for i, mag := range s.Mags {
 		freq := float64(i) * float64(sampleRate) / float64(N)
 		weightedSum += freq * mag
 		magSum += mag
 	}
 
 	if magSum == 0 {
-		return 0, nil
+		return 0
 	}
 
-	return weightedSum / magSum, nil
+	return weightedSum / magSum
 }
 
 // ——— 3.2 Feature Extractors ———
@@ -215,21 +221,42 @@ func (e *DefaultExtractor) ExtractChroma(samples []float64, sampleRate int) ([12
 		return chroma, nil
 	}
 
-	mags := magnitudeSpectrum(samples)
-	N := len(mags)*2 - 2
+	spectrum := HannMagnitudeSpectrum(samples)
+	return chromaFromSpectrum(spectrum, sampleRate), nil
+}
+
+// ExtractSpectralFeatures computes the Hann magnitude spectrum once and derives
+// both the spectral centroid and the chroma vector from it. Callers needing
+// both features should prefer this over calling ExtractSpectralCentroid and
+// ExtractChroma separately, which would run the FFT twice.
+func (e *DefaultExtractor) ExtractSpectralFeatures(samples []float64, sampleRate int) (centroid float64, chroma [12]float64, err error) {
+	if len(samples) == 0 {
+		return 0, chroma, nil
+	}
+
+	spectrum := HannMagnitudeSpectrum(samples)
+	return spectralCentroidFromSpectrum(spectrum, sampleRate), chromaFromSpectrum(spectrum, sampleRate), nil
+}
+
+// chromaFromSpectrum maps an already-computed magnitude spectrum to a
+// normalized 12-bin chroma vector.
+func chromaFromSpectrum(s Spectrum, sampleRate int) [12]float64 {
+	var chroma [12]float64
+
+	N := s.N
 	if N <= 0 {
 		N = 2
 	}
 
 	// Map each positive frequency bin to a chroma bin.
 	// chromaBin = round(12 * log2(f / C0)) % 12
-	for i := 1; i < len(mags); i++ {
+	for i := 1; i < len(s.Mags); i++ {
 		freq := float64(i) * float64(sampleRate) / float64(N)
 		bin := int(math.Round(12.0*math.Log2(freq/C0RefFreq))) % 12
 		if bin < 0 {
 			bin += 12
 		}
-		chroma[bin] += mags[i]
+		chroma[bin] += s.Mags[i]
 	}
 
 	// Normalize to sum to 1.0.
@@ -243,7 +270,7 @@ func (e *DefaultExtractor) ExtractChroma(samples []float64, sampleRate int) ([12
 		}
 	}
 
-	return chroma, nil
+	return chroma
 }
 
 // ExtractMFCCs computes 13 Mel-frequency cepstral coefficients from a PCM frame.
