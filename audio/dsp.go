@@ -17,20 +17,39 @@ const (
 	melMinFreq    = 20.0
 )
 
-// magnitudeSpectrum computes the forward FFT of real-valued samples and returns
-// the magnitude for each positive-frequency bin (indices 0 to N/2 inclusive).
-func magnitudeSpectrum(samples []float64) []float64 {
+// Spectrum holds the result of a single forward FFT on windowed real samples.
+// Mags contains the magnitude of each positive-frequency bin (indices 0 to
+// N/2 inclusive); Power contains the squared magnitude (power) of those same
+// bins; N is the original FFT length (len(samples)), used to map bin indices
+// back to frequencies with freq = i * sampleRate / N.
+type Spectrum struct {
+	Mags  []float64
+	Power []float64
+	N     int
+}
+
+// HannMagnitudeSpectrum computes a single Hann-windowed forward FFT of
+// real-valued samples and returns the magnitude and power for each
+// positive-frequency bin. Callers needing both the magnitude and its power
+// share one FFT instead of running it twice.
+func HannMagnitudeSpectrum(samples []float64) Spectrum {
 	windowed := make([]float64, len(samples))
 	copy(windowed, samples)
 	applyWindow(windowed, hannWindow(len(samples)))
 	spectrum := fft.FFTReal(windowed)
 	N := len(spectrum)
 	halfN := N/2 + 1
-	mags := make([]float64, halfN)
-	for i := range halfN {
-		mags[i] = cmplx.Abs(spectrum[i])
+	s := Spectrum{
+		Mags:  make([]float64, halfN),
+		Power: make([]float64, halfN),
+		N:     N,
 	}
-	return mags
+	for i := range halfN {
+		mag := cmplx.Abs(spectrum[i])
+		s.Mags[i] = mag
+		s.Power[i] = mag * mag
+	}
+	return s
 }
 
 // powerSpectrum computes the forward FFT and returns the squared magnitude
