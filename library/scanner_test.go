@@ -159,7 +159,11 @@ func TestScanner_Open_Scenarios(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Open: %v", err)
 		}
-		defer rsc.Close()
+		defer func() {
+			if err := rsc.Close(); err != nil {
+				t.Errorf("Close: %v", err)
+			}
+		}()
 
 		data, err := io.ReadAll(rsc)
 		if err != nil {
