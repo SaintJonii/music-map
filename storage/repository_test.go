@@ -3,9 +3,12 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/SaintJonii/music-map/model"
 )
@@ -257,4 +260,253 @@ func TestRepository_CorruptDatabase_NoPanic(t *testing.T) {
 		t.Fatal("expected error opening corrupt DB, got nil")
 	}
 	t.Logf("corrupt DB error (expected): %v", err)
+}
+
+// --- Phase 3 (PR4): storage hardening ---
+
+func newRepo(t *testing.T, path string) Repository {
+	t.Helper()
+	repo, err := NewRepository(path)
+	if err != nil {
+		t.Fatalf("NewRepository(%q) failed: %v", path, err)
+	}
+	t.Cleanup(func() { _ = repo.Close() })
+	return repo
+}
+
+func TestRepository_SaveAnalyzed_PersistsFingerprint(t *testing.T) {
+	repo := newRepo(t, ":memory:")
+	ctx := context.Background()
+
+	modTime := time.Unix(1_700_000_000, 123_456_789)
+	a := AnalyzedTrack{
+		Track: model.Track{
+			ID:       "fp-1",
+			Title:    "Fingerprint Track",
+			FilePath: "/music/fp-1.mp3",
+		},
+		Features:    model.TrackFeatures{BPM: 128.0},
+		Fingerprint: "deadbeefcafef00d",
+		Size:        4096,
+		ModTime:     modTime,
+	}
+
+	if err := repo.SaveAnalyzed(ctx, a); err != nil {
+		t.Fatalf("SaveAnalyzed failed: %v", err)
+	}
+
+	stored, err := repo.FindByPath(ctx, "/music/fp-1.mp3")
+	if err != nil {
+		t.Fatalf("FindByPath failed: %v", err)
+	}
+	if stored.Fingerprint != "deadbeefcafef00d" {
+		t.Errorf("fingerprint: expected %q, got %q", "deadbeefcafef00d", stored.Fingerprint)
+	}
+	if stored.Size != 4096 {
+		t.Errorf("size: expected 4096, got %d", stored.Size)
+	}
+	if !stored.ModTime.Equal(modTime) {
+		t.Errorf("mod_time: expected %v, got %v", modTime, stored.ModTime)
+	}
+	if stored.Track.ID != "fp-1" {
+		t.Errorf("track id: expected fp-1, got %q", stored.Track.ID)
+	}
+
+	exists, err := repo.FingerprintExists(ctx, "deadbeefcafef00d")
+	if err != nil {
+		t.Fatalf("FingerprintExists failed: %v", err)
+	}
+	if !exists {
+		t.Error("expected FingerprintExists to report true after save")
+	}
+}
+
+func TestRepository_SaveAnalyzed_DuplicateFingerprint_Conflict(t *testing.T) {
+	repo := newRepo(t, ":memory:")
+	ctx := context.Background()
+
+	first := AnalyzedTrack{
+		Track:       model.Track{ID: "dup-a", FilePath: "/music/a.mp3"},
+		Fingerprint: "same-content-hash",
+	}
+	if err := repo.SaveAnalyzed(ctx, first); err != nil {
+		t.Fatalf("first SaveAnalyzed failed: %v", err)
+	}
+
+	// Different ID and path, same content fingerprint → duplicate.
+	second := AnalyzedTrack{
+		Track:       model.Track{ID: "dup-b", FilePath: "/music/b.mp3"},
+		Fingerprint: "same-content-hash",
+	}
+	err := repo.SaveAnalyzed(ctx, second)
+	if err == nil {
+		t.Fatal("expected conflict for duplicate fingerprint, got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("expected ErrConflict, got %v", err)
+	}
+}
+
+func TestRepository_FingerprintExists(t *testing.T) {
+	repo := newRepo(t, ":memory:")
+	ctx := context.Background()
+
+	exists, err := repo.FingerprintExists(ctx, "not-there")
+	if err != nil {
+		t.Fatalf("FingerprintExists failed: %v", err)
+	}
+	if exists {
+		t.Error("expected false before any save")
+	}
+
+	if err := repo.SaveAnalyzed(ctx, AnalyzedTrack{
+		Track:       model.Track{ID: "e-1", FilePath: "/music/e-1.mp3"},
+		Fingerprint: "hash-1",
+	}); err != nil {
+		t.Fatalf("SaveAnalyzed failed: %v", err)
+	}
+
+	exists, err = repo.FingerprintExists(ctx, "hash-1")
+	if err != nil {
+		t.Fatalf("FingerprintExists failed: %v", err)
+	}
+	if !exists {
+		t.Error("expected true after save")
+	}
+
+	// Empty fingerprint must never be reported present: the partial UNIQUE index
+	// excludes DEFAULT '', so many tracks can share the empty fingerprint.
+	if err := repo.SaveAnalyzed(ctx, AnalyzedTrack{
+		Track: model.Track{ID: "e-2", FilePath: "/music/e-2.mp3"},
+	}); err != nil {
+		t.Fatalf("SaveAnalyzed (empty fingerprint) failed: %v", err)
+	}
+	exists, err = repo.FingerprintExists(ctx, "")
+	if err != nil {
+		t.Fatalf("FingerprintExists(empty) failed: %v", err)
+	}
+	if exists {
+		t.Error("empty fingerprint must report false")
+	}
+}
+
+func TestRepository_ConcurrentSaves_NoBusy(t *testing.T) {
+	dir := t.TempDir()
+	repo := newRepo(t, filepath.Join(dir, "concurrent.db"))
+	ctx := context.Background()
+
+	const n = 50
+	var wg sync.WaitGroup
+	errs := make(chan error, n)
+
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			a := AnalyzedTrack{
+				Track: model.Track{
+					ID:       fmt.Sprintf("conc-%d", i),
+					Title:    fmt.Sprintf("Track %d", i),
+					FilePath: fmt.Sprintf("/music/conc-%d.mp3", i),
+				},
+				Features:    model.TrackFeatures{BPM: float64(100 + i)},
+				Fingerprint: fmt.Sprintf("fp-%032d", i),
+				Size:        int64(i * 1024),
+			}
+			errs <- repo.SaveAnalyzed(ctx, a)
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent SaveAnalyzed failed: %v", err)
+		}
+	}
+
+	tracks, err := repo.List(ctx)
+	if err != nil {
+		t.Fatalf("List failed: %v", err)
+	}
+	if len(tracks) != n {
+		t.Errorf("expected %d tracks, got %d", n, len(tracks))
+	}
+}
+
+func TestRepository_SaveAnalyzed_IdempotentRerun(t *testing.T) {
+	repo := newRepo(t, ":memory:")
+	ctx := context.Background()
+
+	a := AnalyzedTrack{
+		Track:       model.Track{ID: "idem-1", Title: "Idempotent", FilePath: "/music/idem.mp3"},
+		Fingerprint: "idem-hash",
+		Size:        2048,
+		ModTime:     time.Unix(1_700_000_000, 0),
+	}
+	if err := repo.SaveAnalyzed(ctx, a); err != nil {
+		t.Fatalf("first SaveAnalyzed failed: %v", err)
+	}
+
+	// Re-running the same track must conflict and must not create a new row.
+	err := repo.SaveAnalyzed(ctx, a)
+	if err == nil {
+		t.Fatal("expected conflict on idempotent re-run, got nil")
+	}
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("expected ErrConflict, got %v", err)
+	}
+
+	tracks, err := repo.List(ctx)
+	if err != nil {
+		t.Fatalf("List failed: %v", err)
+	}
+	if len(tracks) != 1 {
+		t.Errorf("expected exactly 1 track after re-run, got %d", len(tracks))
+	}
+}
+
+func TestRepository_WALReopen_PreservesFingerprint(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "wal.db")
+	ctx := context.Background()
+
+	modTime := time.Unix(1_700_000_000, 987_654_321)
+	a := AnalyzedTrack{
+		Track:       model.Track{ID: "wal-1", Title: "WAL Track", FilePath: "/music/wal.mp3"},
+		Fingerprint: "wal-fingerprint",
+		Size:        8192,
+		ModTime:     modTime,
+	}
+
+	repo1, err := NewRepository(dbPath)
+	if err != nil {
+		t.Fatalf("failed to create first repository: %v", err)
+	}
+	if err := repo1.SaveAnalyzed(ctx, a); err != nil {
+		t.Fatalf("first SaveAnalyzed failed: %v", err)
+	}
+	if err := repo1.Close(); err != nil {
+		t.Fatalf("close first repository failed: %v", err)
+	}
+
+	repo2, err := NewRepository(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen repository: %v", err)
+	}
+	defer func() { _ = repo2.Close() }()
+
+	stored, err := repo2.FindByPath(ctx, "/music/wal.mp3")
+	if err != nil {
+		t.Fatalf("FindByPath after reopen failed: %v", err)
+	}
+	if stored.Fingerprint != "wal-fingerprint" {
+		t.Errorf("fingerprint: expected %q, got %q", "wal-fingerprint", stored.Fingerprint)
+	}
+	if stored.Size != 8192 {
+		t.Errorf("size: expected 8192, got %d", stored.Size)
+	}
+	if !stored.ModTime.Equal(modTime) {
+		t.Errorf("mod_time: expected %v, got %v", modTime, stored.ModTime)
+	}
 }
