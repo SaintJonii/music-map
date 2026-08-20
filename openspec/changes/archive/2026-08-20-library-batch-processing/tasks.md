@@ -52,4 +52,4 @@ Threat matrix: N/A — no shell/subprocess/VCS/PR boundary, no threat tasks.
 
 ## Phase 5: Verify
 
-- [ ] 5.1 `go test ./... -v -cover -coverprofile=coverage.out` ≥80%; `go build ./...`; `gofmt -l .`
+- [x] 5.1 `go test ./... -v -cover -coverprofile=coverage.out` ≥80%; `go build ./...`; `gofmt -l .`

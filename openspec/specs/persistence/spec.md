@@ -88,3 +88,49 @@ The repository MUST return structured errors for all failure modes and SHALL NOT
 - WHEN the repository opens it
 - THEN an error is returned during open or first operation
 - AND no panic occurs
+
+### Requirement: Fingerprint Storage
+
+The repository MUST store a unique content fingerprint per track.
+
+#### Scenario: Save stores fingerprint
+
+- GIVEN a track with a fingerprint
+- WHEN saved
+- THEN the fingerprint persists
+
+#### Scenario: Duplicate fingerprint
+
+- GIVEN a track whose fingerprint exists
+- WHEN saved
+- THEN it is skipped as a duplicate
+
+### Requirement: Fingerprint Dedupe
+
+The repository MUST skip re-saving a track when its fingerprint already exists.
+
+#### Scenario: Already-analyzed skipped
+
+- GIVEN a present fingerprint
+- WHEN the batch reaches it
+- THEN it is skipped, no new row written
+
+### Requirement: Concurrent Save Safety
+
+Concurrent saves MUST NOT fail with `SQLITE_BUSY`.
+
+#### Scenario: Concurrent saves succeed
+
+- GIVEN multiple tracks saved concurrently
+- WHEN all complete
+- THEN no save fails busy
+
+### Requirement: Idempotent Re-run
+
+Re-running analysis SHALL leave analyzed tracks unchanged.
+
+#### Scenario: Second run changes nothing
+
+- GIVEN an already-analyzed library
+- WHEN the batch runs again
+- THEN no duplicate rows, tracks unchanged
