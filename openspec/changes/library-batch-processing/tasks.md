@@ -47,8 +47,8 @@ Threat matrix: N/A — no shell/subprocess/VCS/PR boundary, no threat tasks.
 
 ## Phase 4: Wiring + integration
 
-- [ ] 4.1 GREEN: `cmd/mapa-musical/main.go` — wire `Scanner`+`repo`+`runner`; persistent DB path; end-of-run summary
-- [ ] 4.2 E2E: `cmd/mapa-musical/main_test.go` — batch over `testdata/` fixtures + `corrupt.mp3`
+- [x] 4.1 GREEN: `cmd/mapa-musical/main.go` — wire `Scanner`+`repo`+`runner`; persistent DB path; end-of-run summary
+- [x] 4.2 E2E: `cmd/mapa-musical/main_test.go` — batch over `testdata/` fixtures + `corrupt.mp3`
 
 ## Phase 5: Verify
 
