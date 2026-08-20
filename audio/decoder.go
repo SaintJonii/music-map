@@ -100,7 +100,7 @@ func detectID3v2(header []byte, r io.Reader) (Decoder, io.Reader, error) {
 	// Read the rest of the tag plus two bytes of the audio frame to verify
 	// MPEG sync. need = header already read + remainder + 2 sync bytes.
 	need := tagSize + 2
-	rest := header
+	var rest []byte
 	if need > len(header) {
 		extra := make([]byte, need-len(header))
 		m, err := io.ReadFull(r, extra)

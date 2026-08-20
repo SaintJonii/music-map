@@ -80,13 +80,14 @@ func runBatch(ctx context.Context, root, dbPath string) (batch.Summary, error) {
 }
 
 // printSummary writes the end-of-run summary (counts + per-file failures) to w.
+// Write errors are ignored: this is cosmetic end-of-run output to stdout.
 func printSummary(w io.Writer, s batch.Summary) {
-	fmt.Fprintf(w, "Scanned:  %d\n", s.Total)
-	fmt.Fprintf(w, "Analyzed: %d\n", s.Succeeded)
-	fmt.Fprintf(w, "Skipped:  %d\n", s.Skipped)
-	fmt.Fprintf(w, "Failed:   %d\n", s.Failed)
+	_, _ = fmt.Fprintf(w, "Scanned:  %d\n", s.Total)
+	_, _ = fmt.Fprintf(w, "Analyzed: %d\n", s.Succeeded)
+	_, _ = fmt.Fprintf(w, "Skipped:  %d\n", s.Skipped)
+	_, _ = fmt.Fprintf(w, "Failed:   %d\n", s.Failed)
 	for _, f := range s.Failures {
-		fmt.Fprintf(w, "  - %s: %v\n", f.Ref.ID, f.Err)
+		_, _ = fmt.Fprintf(w, "  - %s: %v\n", f.Ref.ID, f.Err)
 	}
 }
 
