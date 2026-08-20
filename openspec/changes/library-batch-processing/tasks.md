@@ -42,8 +42,8 @@ Threat matrix: N/A — no shell/subprocess/VCS/PR boundary, no threat tasks.
 
 ## Phase 3: Core — storage hardening
 
-- [ ] 3.1 RED: `storage/repository_test.go` — fingerprint persists, duplicate skipped, concurrent saves no busy, idempotent re-run, WAL reopen, `ErrConflict`
-- [ ] 3.2 GREEN: `storage/repository.go` — DSN `_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)` (file paths only), `SetMaxOpenConns(1)`, prepared stmts, `fingerprint`/`size`/`mod_time` columns + partial UNIQUE index + `idx_tracks_file_path`, `SaveAnalyzed`/`FindByPath`/`FingerprintExists`
+- [x] 3.1 RED: `storage/repository_test.go` — fingerprint persists, duplicate skipped, concurrent saves no busy, idempotent re-run, WAL reopen, `ErrConflict`
+- [x] 3.2 GREEN: `storage/repository.go` — DSN `_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)` (file paths only), `SetMaxOpenConns(1)`, prepared stmts, `fingerprint`/`size`/`mod_time` columns + partial UNIQUE index + `idx_tracks_file_path`, `SaveAnalyzed`/`FindByPath`/`FingerprintExists`
 
 ## Phase 4: Wiring + integration
 
