@@ -2,154 +2,108 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
-	"github.com/SaintJonii/music-map/audio"
-	"github.com/SaintJonii/music-map/metadata"
-	"github.com/SaintJonii/music-map/model"
+	"github.com/SaintJonii/music-map/batch"
+	"github.com/SaintJonii/music-map/library"
 	"github.com/SaintJonii/music-map/storage"
 )
 
-// pipeline orchestrates the full audio processing flow.
-type pipeline struct {
-	tagReader metadata.TagReader
-	extractor audio.FeatureExtractor
-	repo      storage.Repository
+// dbFileName is the persistent SQLite database used by the CLI. It lives in the
+// current working directory.
+const dbFileName = "mapa-musical.db"
+
+// dedupeSaver adapts storage.Repository to batch.Saver, owning the dedupe
+// policy the runner's collector relies on:
+//   - unchanged file (same size and mod time) → skipped without re-hash/rewrite
+//   - duplicate content (same id or fingerprint) → ErrConflict → skipped
+//   - anything else → saved
+type dedupeSaver struct {
+	repo storage.Repository
 }
 
-// newPipeline creates the default processing pipeline.
-func newPipeline(repo storage.Repository) *pipeline {
-	return &pipeline{
-		tagReader: metadata.NewTagReader(),
-		extractor: &audio.DefaultExtractor{},
-		repo:      repo,
+// SaveAnalyzed implements batch.Saver.
+func (s *dedupeSaver) SaveAnalyzed(ctx context.Context, a batch.AnalyzedTrack) (bool, error) {
+	// Fast path: skip unchanged files by size+mtime before re-hashing or writing.
+	stored, err := s.repo.FindByPath(ctx, a.Track.FilePath)
+	switch {
+	case err == nil:
+		if stored.Size == a.Size && stored.ModTime.Equal(a.ModTime) {
+			return true, nil
+		}
+	case errors.Is(err, storage.ErrNotFound):
+		// First time seeing this path — fall through to save.
+	default:
+		return false, fmt.Errorf("find by path: %w", err)
 	}
+
+	err = s.repo.SaveAnalyzed(ctx, storage.AnalyzedTrack{
+		Track:       a.Track,
+		Features:    a.Features,
+		Fingerprint: a.Fingerprint,
+		Size:        a.Size,
+		ModTime:     a.ModTime,
+	})
+	if errors.Is(err, storage.ErrConflict) {
+		// Already analyzed (same id or same content fingerprint) — a skip, not
+		// a failure.
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("save analyzed: %w", err)
+	}
+	return false, nil
 }
 
-// processFile runs the full pipeline on a single audio file.
-func (p *pipeline) processFile(ctx context.Context, filePath string) (model.Track, model.TrackFeatures, error) {
-	// 1. Open file.
-	f, err := os.Open(filePath)
+// runBatch wires the local scanner, the persistent repository, and the batch
+// runner, runs the analysis, and returns the aggregated summary. A corrupt file
+// is reported in the summary; only setup errors (e.g. storage init, scan
+// failure) are returned as an error.
+func runBatch(ctx context.Context, root, dbPath string) (batch.Summary, error) {
+	repo, err := storage.NewRepository(dbPath)
 	if err != nil {
-		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("open file: %w", err)
+		return batch.Summary{}, fmt.Errorf("initialize storage: %w", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer func() { _ = repo.Close() }()
 
-	// 2. Read tags (tags-first strategy).
-	track, err := p.tagReader.ReadTags(f)
+	scanner := library.NewScanner(root)
+	runner := batch.NewRunner(scanner, &dedupeSaver{repo: repo})
+
+	summary, err := runner.Run(ctx)
 	if err != nil {
-		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("read tags: %w", err)
+		return summary, fmt.Errorf("run: %w", err)
 	}
-	track.FilePath = filePath
-
-	// Set ID from file path if not present.
-	if track.ID == "" {
-		track.ID = fileID(filePath)
-	}
-
-	// Reset file position for decoding.
-	if _, err := f.Seek(0, 0); err != nil {
-		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("seek: %w", err)
-	}
-
-	// 3. Detect format and decode.
-	decoder, r, err := audio.DetectFormat(f)
-	if err != nil {
-		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("detect format: %w", err)
-	}
-	samples, sampleRate, channels, err := decoder.Decode(r)
-	if err != nil {
-		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("decode: %w", err)
-	}
-
-	track.Duration = float64(len(samples)) / float64(sampleRate*channels)
-
-	// 4. Extract features.
-	energy := p.extractor.ExtractRMS(samples)
-	zcr := p.extractor.ExtractZCR(samples, sampleRate)
-	centroid, err := p.extractor.ExtractSpectralCentroid(samples, sampleRate)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: spectral centroid failed: %v\n", err)
-	}
-	bpm, err := p.extractor.ExtractBPM(samples, sampleRate)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: BPM detection failed: %v\n", err)
-	}
-	chroma, err := p.extractor.ExtractChroma(samples, sampleRate)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: chroma extraction failed: %v\n", err)
-	}
-	mfccs, err := p.extractor.ExtractMFCCs(samples)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: MFCC extraction failed: %v\n", err)
-	}
-	key := p.extractor.ExtractKey(chroma)
-	danceability := p.extractor.ExtractDanceability(bpm, energy, zcr)
-	acousticness := p.extractor.ExtractAcousticness(centroid, energy)
-
-	features := model.TrackFeatures{
-		BPM:              bpm,
-		Key:              key,
-		Energy:           energy,
-		Danceability:     danceability,
-		Acousticness:     acousticness,
-		SpectralCentroid: centroid,
-		Chroma:           chroma,
-		MFCCs:            mfccs,
-		ZCR:              zcr,
-	}
-
-	// 5. Persist.
-	if err := p.repo.Save(ctx, track, features); err != nil {
-		return model.Track{}, model.TrackFeatures{}, fmt.Errorf("persist: %w", err)
-	}
-
-	return track, features, nil
+	return summary, nil
 }
 
-// fileID generates a deterministic ID from a file path.
-func fileID(path string) string {
-	h := sha256.Sum256([]byte(path))
-	return fmt.Sprintf("%x", h[:16])
+// printSummary writes the end-of-run summary (counts + per-file failures) to w.
+// Write errors are ignored: this is cosmetic end-of-run output to stdout.
+func printSummary(w io.Writer, s batch.Summary) {
+	_, _ = fmt.Fprintf(w, "Scanned:  %d\n", s.Total)
+	_, _ = fmt.Fprintf(w, "Analyzed: %d\n", s.Succeeded)
+	_, _ = fmt.Fprintf(w, "Skipped:  %d\n", s.Skipped)
+	_, _ = fmt.Fprintf(w, "Failed:   %d\n", s.Failed)
+	for _, f := range s.Failures {
+		_, _ = fmt.Fprintf(w, "  - %s: %v\n", f.Ref.ID, f.Err)
+	}
 }
 
 func main() {
 	ctx := context.Background()
 
-	// Use in-memory DB for simple CLI runs.
-	repo, err := storage.NewRepository(":memory:")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: failed to initialize storage: %v\n", err)
-		os.Exit(1)
-	}
-	defer func() { _ = repo.Close() }()
-
-	p := newPipeline(repo)
-
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <audio-file>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <library-folder>\n", os.Args[0])
 		os.Exit(1)
 	}
 
-	filePath := os.Args[1]
-	track, features, err := p.processFile(ctx, filePath)
+	summary, err := runBatch(ctx, os.Args[1], dbFileName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", filePath, err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Print results.
-	fmt.Printf("Track: %s\n", track.Title)
-	fmt.Printf("Artist: %s\n", track.Artist)
-	fmt.Printf("Duration: %.2fs\n", track.Duration)
-	fmt.Printf("BPM: %.1f\n", features.BPM)
-	fmt.Printf("Key: %s\n", features.Key)
-	fmt.Printf("Energy: %.3f\n", features.Energy)
-	fmt.Printf("Danceability: %.3f\n", features.Danceability)
-	fmt.Printf("Acousticness: %.3f\n", features.Acousticness)
-	fmt.Printf("ZCR: %.4f\n", features.ZCR)
-	fmt.Printf("Spectral Centroid: %.1f Hz\n", features.SpectralCentroid)
-	fmt.Println("Processing complete.")
+	printSummary(os.Stdout, summary)
 }

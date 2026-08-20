@@ -12,6 +12,7 @@ import (
 	"io"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/SaintJonii/music-map/audio"
 	"github.com/SaintJonii/music-map/library"
@@ -19,10 +20,22 @@ import (
 	"github.com/SaintJonii/music-map/model"
 )
 
-// Saver persists an analyzed track and its features.
-// storage.Repository satisfies this interface.
+// AnalyzedTrack is the product of analyzing a single track, carrying the
+// storage-level dedupe metadata (fingerprint, size, mod_time). Those fields
+// stay out of model.Track, mirroring the storage layer's contract.
+type AnalyzedTrack struct {
+	Track       model.Track
+	Features    model.TrackFeatures
+	Fingerprint string
+	Size        int64
+	ModTime     time.Time
+}
+
+// Saver persists an analyzed track, applying the dedupe policy. It reports
+// whether the track was skipped (already analyzed / unchanged) rather than
+// saved. A non-nil error is a genuine persistence failure.
 type Saver interface {
-	Save(ctx context.Context, track model.Track, features model.TrackFeatures) error
+	SaveAnalyzed(ctx context.Context, a AnalyzedTrack) (skipped bool, err error)
 }
 
 // Result is the outcome of analyzing a single track.
@@ -46,6 +59,7 @@ type Failure struct {
 type Summary struct {
 	Total     int
 	Succeeded int
+	Skipped   int
 	Failed    int
 	Failures  []Failure
 }
@@ -140,7 +154,14 @@ func (r *Runner) Run(ctx context.Context) (Summary, error) {
 				summary.Failures = append(summary.Failures, Failure{Ref: res.Ref, Err: res.Err})
 				continue
 			}
-			if err := r.repo.Save(ctx, res.Track, res.Features); err != nil {
+			skipped, err := r.repo.SaveAnalyzed(ctx, AnalyzedTrack{
+				Track:       res.Track,
+				Features:    res.Features,
+				Fingerprint: res.Fingerprint,
+				Size:        res.Ref.Size,
+				ModTime:     res.Ref.ModTime,
+			})
+			if err != nil {
 				summary.Failed++
 				summary.Failures = append(summary.Failures, Failure{
 					Ref: res.Ref,
@@ -148,7 +169,11 @@ func (r *Runner) Run(ctx context.Context) (Summary, error) {
 				})
 				continue
 			}
-			summary.Succeeded++
+			if skipped {
+				summary.Skipped++
+			} else {
+				summary.Succeeded++
+			}
 		case <-ctx.Done():
 			return summary, ctx.Err()
 		}

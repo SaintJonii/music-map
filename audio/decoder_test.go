@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -126,6 +128,42 @@ func TestDetectFormat_ShortInput(t *testing.T) {
 	if err == nil {
 		t.Fatal("DetectFormat: expected error for short input, got nil")
 	}
+}
+
+func TestDetectFormat_ID3TaggedMP3(t *testing.T) {
+	t.Run("valid id3-tagged mp3 detected", func(t *testing.T) {
+		f, err := os.Open(filepath.Join("..", "testdata", "mp3", "test_128kbps.mp3"))
+		if err != nil {
+			t.Fatalf("open fixture: %v", err)
+		}
+		defer func() { _ = f.Close() }()
+
+		dec, _, err := DetectFormat(f)
+		if err != nil {
+			t.Fatalf("DetectFormat: unexpected error: %v", err)
+		}
+		if _, ok := dec.(*MP3Decoder); !ok {
+			t.Fatalf("expected *MP3Decoder, got %T", dec)
+		}
+	})
+
+	t.Run("corrupt id3-tagged mp3 detected as mp3", func(t *testing.T) {
+		// corrupt.mp3 is an ID3 tag + one truncated MPEG frame. It must be
+		// DETECTED as MP3 (sync after the tag); the failure is at Decode.
+		f, err := os.Open(filepath.Join("..", "testdata", "mp3", "corrupt.mp3"))
+		if err != nil {
+			t.Fatalf("open fixture: %v", err)
+		}
+		defer func() { _ = f.Close() }()
+
+		dec, _, err := DetectFormat(f)
+		if err != nil {
+			t.Fatalf("DetectFormat: expected MP3 detection, got error: %v", err)
+		}
+		if _, ok := dec.(*MP3Decoder); !ok {
+			t.Fatalf("expected *MP3Decoder, got %T", dec)
+		}
+	})
 }
 
 func TestMockDecoder_ErrorPropagation(t *testing.T) {

@@ -6,6 +6,9 @@
 coverage.out
 vendor/
 
+# SQLite (persistent library DB written by the CLI in the working directory)
+*.db
+
 # Environment
 .env
 

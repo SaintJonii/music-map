@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/SaintJonii/music-map/library"
-	"github.com/SaintJonii/music-map/model"
 )
 
 // --- Test doubles ---
@@ -72,26 +71,32 @@ func (f *fakeSource) Open(ctx context.Context, ref library.TrackRef) (library.Re
 
 // fakeRepo implements Saver, recording every persisted track.
 type fakeRepo struct {
-	mu    sync.Mutex
-	saved []model.Track
+	mu       sync.Mutex
+	analyzed []AnalyzedTrack
+	// skipFor, when non-nil, decides whether a track is reported as skipped
+	// (already analyzed / unchanged) instead of saved.
+	skipFor func(AnalyzedTrack) bool
 }
 
-func (f *fakeRepo) Save(ctx context.Context, track model.Track, features model.TrackFeatures) error {
+func (f *fakeRepo) SaveAnalyzed(ctx context.Context, a AnalyzedTrack) (bool, error) {
 	if err := ctx.Err(); err != nil {
-		return err
+		return false, err
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.saved = append(f.saved, track)
-	return nil
+	if f.skipFor != nil && f.skipFor(a) {
+		return true, nil
+	}
+	f.analyzed = append(f.analyzed, a)
+	return false, nil
 }
 
 func (f *fakeRepo) savedIDs() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	ids := make([]string, len(f.saved))
-	for i, t := range f.saved {
-		ids[i] = t.ID
+	ids := make([]string, len(f.analyzed))
+	for i, a := range f.analyzed {
+		ids[i] = a.Track.ID
 	}
 	return ids
 }
@@ -330,5 +335,66 @@ func TestAnalyze_FingerprintMatchesFileSHA256(t *testing.T) {
 	want := sha256.Sum256(bytesByID["one.wav"])
 	if res.Fingerprint != hex.EncodeToString(want[:]) {
 		t.Errorf("Fingerprint = %s, want sha256 of full file %s", res.Fingerprint, hex.EncodeToString(want[:]))
+	}
+}
+
+func TestRun_SkipsAlreadyAnalyzed(t *testing.T) {
+	src, _ := validSource(t, "new.wav", "seen.wav")
+	repo := &fakeRepo{
+		skipFor: func(a AnalyzedTrack) bool {
+			return a.Track.FilePath == "seen.wav"
+		},
+	}
+	r := NewRunner(src, repo)
+
+	summary, err := r.Run(context.Background())
+	if err != nil {
+		t.Fatalf("Run: unexpected error: %v", err)
+	}
+
+	if summary.Total != 2 {
+		t.Errorf("Total = %d, want 2", summary.Total)
+	}
+	if summary.Succeeded != 1 {
+		t.Errorf("Succeeded = %d, want 1", summary.Succeeded)
+	}
+	if summary.Skipped != 1 {
+		t.Errorf("Skipped = %d, want 1", summary.Skipped)
+	}
+	if summary.Failed != 0 {
+		t.Errorf("Failed = %d, want 0", summary.Failed)
+	}
+
+	// Only the non-skipped track must have been persisted.
+	if got := repo.savedIDs(); !reflect.DeepEqual(got, []string{"new.wav"}) {
+		t.Errorf("saved IDs = %v, want [new.wav]", got)
+	}
+}
+
+func TestRun_PassesDedupeMetadataToSaver(t *testing.T) {
+	src, bytesByID := validSource(t, "meta.wav")
+	repo := &fakeRepo{}
+	r := NewRunner(src, repo)
+
+	if _, err := r.Run(context.Background()); err != nil {
+		t.Fatalf("Run: unexpected error: %v", err)
+	}
+
+	if len(repo.analyzed) != 1 {
+		t.Fatalf("expected 1 analyzed track, got %d", len(repo.analyzed))
+	}
+	a := repo.analyzed[0]
+
+	// The fingerprint must be the SHA-256 of the whole file, carried out of the
+	// worker and handed to the saver (not recomputed or dropped).
+	want := sha256.Sum256(bytesByID["meta.wav"])
+	if a.Fingerprint != hex.EncodeToString(want[:]) {
+		t.Errorf("Fingerprint = %q, want %q", a.Fingerprint, hex.EncodeToString(want[:]))
+	}
+	if a.Size != int64(len(bytesByID["meta.wav"])) {
+		t.Errorf("Size = %d, want %d", a.Size, len(bytesByID["meta.wav"]))
+	}
+	if a.ModTime.IsZero() {
+		t.Error("ModTime must be carried through to the saver (non-zero)")
 	}
 }
