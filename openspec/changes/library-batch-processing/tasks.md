@@ -37,8 +37,8 @@ Threat matrix: N/A — no shell/subprocess/VCS/PR boundary, no threat tasks.
 
 ## Phase 2: Core — batch runner
 
-- [ ] 2.1 RED: `batch/runner_test.go` — fake `LibrarySource`; scenarios: valid batch succeeds, corrupt file isolated, mixed summary, cancel mid-run, deterministic across worker counts
-- [ ] 2.2 GREEN: `batch/runner.go` — worker pool (`jobs`/`results`, `GOMAXPROCS`), single collector owns DB writes, `Result`, `Summary`, `analyze` tee+hash, `context` cancellation
+- [x] 2.1 RED: `batch/runner_test.go` — fake `LibrarySource`; scenarios: valid batch succeeds, corrupt file isolated, mixed summary, cancel mid-run, deterministic across worker counts
+- [x] 2.2 GREEN: `batch/runner.go` — worker pool (`jobs`/`results`, `GOMAXPROCS`), single collector owns DB writes, `Result`, `Summary`, `analyze` tee+hash, `context` cancellation
 
 ## Phase 3: Core — storage hardening
 
